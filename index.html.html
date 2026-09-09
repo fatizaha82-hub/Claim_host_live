@@ -1,0 +1,2549 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Host Live</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root{
+            --primary:#2f7d1f;
+            --primary-dark:#205b15;
+            --primary-light:#eaf6e5;
+            --blue:#3f8dcc;
+            --blue-dark:#24699e;
+            --blue-light:#eaf4fc;
+            --orange:#f4a340;
+            --orange-light:#fff1dd;
+            --red:#ef4444;
+            --red-dark:#c62828;
+            --red-light:#fff0f0;
+            --green:#22a447;
+            --green-light:#eaf9ef;
+            --purple:#7955c8;
+            --purple-light:#f0eaff;
+            --dark:#18212b;
+            --text:#334155;
+            --muted:#64748b;
+            --border:#e2e8f0;
+            --white:#ffffff;
+            --bg:#f4f7f3;
+            --shadow:0 10px 30px rgba(15,23,42,.08);
+            --shadow-hover:0 18px 40px rgba(15,23,42,.14);
+        }
+
+        *{ box-sizing:border-box; }
+        html{ scroll-behavior:smooth; }
+        body{
+            margin:0;
+            font-family:Inter,Segoe UI,Arial,sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(47,125,31,.08), transparent 30%),
+                radial-gradient(circle at top right, rgba(63,141,204,.08), transparent 30%),
+                var(--bg);
+            color:var(--text);
+        }
+
+        /* TOPBAR */
+        .topbar{
+            position:sticky;
+            top:0;
+            z-index:1000;
+            min-height:74px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:12px 28px;
+            background:rgba(255,255,255,.94);
+            backdrop-filter:blur(15px);
+            border-bottom:1px solid var(--border);
+        }
+
+        .brand{ display:flex; align-items:center; gap:13px; }
+        .logo{
+            width:44px; height:44px;
+            border-radius:13px;
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-size:22px;
+            background:linear-gradient(135deg, var(--primary), #54a938);
+            box-shadow:0 7px 18px rgba(47,125,31,.25);
+        }
+        .brand-text h1{ margin:0; font-size:18px; font-weight:800; color:var(--dark); }
+        .brand-text span{ font-size:11px; color:var(--muted); }
+        .top-actions{ display:flex; align-items:center; gap:9px; }
+
+        /* BUTTON */
+        .btn{
+            border:0; border-radius:10px;
+            padding:10px 15px;
+            font-size:12px; font-weight:750;
+            cursor:pointer;
+            display:inline-flex; align-items:center; justify-content:center; gap:7px;
+            transition:.25s ease;
+        }
+        .btn:hover{ transform:translateY(-2px); }
+        .btn-primary{ background:var(--primary); color:#fff; }
+        .btn-primary:hover{ background:var(--primary-dark); }
+        .btn-blue{ background:var(--blue); color:#fff; }
+        .btn-red{ background:var(--red); color:#fff; }
+        .btn-light{ background:#fff; color:var(--text); border:1px solid var(--border); }
+        .btn-orange{ background:var(--orange); color:#fff; }
+
+        /* CONTAINER */
+        .container{ width:min(1500px,94%); margin:25px auto 60px; }
+
+        /* HERO */
+        .hero{
+            position:relative; overflow:hidden;
+            color:#fff; border-radius:22px;
+            padding:27px 30px;
+            display:flex; align-items:center; justify-content:space-between; gap:25px;
+            background:linear-gradient(135deg, rgba(47,125,31,.97), rgba(38,105,158,.96));
+            box-shadow:var(--shadow);
+            animation:fadeUp .5s ease;
+        }
+        .hero::before{
+            content:""; position:absolute;
+            width:320px; height:320px; border-radius:50%;
+            right:-120px; top:-170px;
+            background:rgba(255,255,255,.08);
+        }
+        .hero-content{ position:relative; z-index:2; }
+        .hero h2{ margin:0 0 7px; font-size:28px; }
+        .hero p{ margin:0; opacity:.86; font-size:13px; }
+        .hero-badge{
+            position:relative; z-index:2; min-width:200px;
+            text-align:center; padding:14px 18px; border-radius:14px;
+            background:rgba(255,255,255,.15);
+            border:1px solid rgba(255,255,255,.25);
+        }
+        .hero-badge strong{ display:block; font-size:21px; margin:4px 0; }
+
+        /* TABS */
+        .tabs-wrapper{
+            margin-top:22px; background:#fff;
+            border-radius:16px; padding:8px;
+            box-shadow:var(--shadow); overflow-x:auto;
+        }
+        .tabs{ display:flex; gap:5px; min-width:max-content; align-items:center; }
+        .tab{
+            border:0; background:transparent; color:var(--muted);
+            padding:12px 17px; border-radius:10px; cursor:pointer;
+            font-size:12px; font-weight:750; transition:.25s ease;
+        }
+        .tab:hover{ background:var(--primary-light); color:var(--primary); }
+        .tab.active{
+            color:#fff; background:var(--primary);
+            box-shadow:0 6px 15px rgba(47,125,31,.22);
+        }
+        .tab.admin-only{ display:none; }
+        body.admin-mode .tab.admin-only{ display:block; }
+
+        /* TAB CONTENT */
+        .tab-content{ display:none; }
+        .tab-content.active{ display:block; animation:fadeUp .35s ease; }
+
+        /* SECTION */
+        .section-title{
+            margin:25px 0 15px;
+            display:flex; align-items:center; justify-content:space-between; gap:10px;
+            flex-wrap:wrap;
+        }
+        .section-title h3{ margin:0; color:var(--dark); font-size:18px; }
+        .section-title span{ font-size:11px; color:var(--muted); }
+
+        /* SUMMARY */
+        .summary-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+        .card{
+            background:#fff; border:1px solid var(--border);
+            border-radius:17px; padding:18px;
+            box-shadow:var(--shadow); transition:.3s ease;
+        }
+        .card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-hover); }
+        .summary-card{ position:relative; overflow:hidden; }
+        .card-label{ font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; }
+        .card-value{ margin-top:6px; font-size:20px; color:var(--dark); font-weight:850; }
+        .card-subtext{ margin-top:4px; font-size:10px; color:var(--primary); font-weight:750; }
+        .card-icon{
+            width:36px; height:36px; border-radius:12px;
+            display:flex; align-items:center; justify-content:center; font-size:16px;
+        }
+        .card-head{ display:flex; align-items:center; justify-content:space-between; }
+        .card-blue .card-icon{ background:var(--blue-light); color:var(--blue); }
+        .card-green .card-icon{ background:var(--green-light); color:var(--green); }
+        .card-orange .card-icon{ background:var(--orange-light); color:var(--orange); }
+        .card-purple .card-icon{ background:var(--purple-light); color:var(--purple); }
+        .card-red .card-icon{ background:var(--red-light); color:var(--red); }
+
+        /* PROFILE & PERFORMANCE GRID */
+        .profile-grid{ 
+            display:grid; 
+            grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); 
+            gap:22px; 
+            margin-top:15px;
+        }
+        .profile{
+            background:#ffffff; 
+            border:1px solid var(--border);
+            border-top:4px solid var(--primary);
+            border-radius:20px; 
+            padding:26px; 
+            box-shadow:0 10px 25px rgba(15,23,42,.05);
+            transition:transform .3s ease, box-shadow .3s ease;
+        }
+        .profile:hover{
+            transform:translateY(-5px);
+            box-shadow:0 18px 38px rgba(15,23,42,.11);
+        }
+        .profile-title{ display:flex; align-items:center; gap:16px; margin-bottom:22px; }
+        .avatar{
+            width:58px; height:58px; border-radius:18px;
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-weight:850; font-size:18px;
+            background:linear-gradient(135deg, var(--primary), var(--blue));
+            box-shadow:0 6px 16px rgba(47,125,31,.22);
+        }
+        .profile-title h3{ margin:0; font-size:18px; font-weight:800; color:var(--dark); }
+        .profile-title span{ font-size:11px; color:var(--muted); font-weight:600; display:block; margin-top:2px; }
+
+        .info-grid{ 
+            display:grid; 
+            grid-template-columns:repeat(2, 1fr); 
+            gap:14px; 
+        }
+        .info-box{ 
+            padding:16px; 
+            border-radius:14px; 
+            border:1px solid transparent; 
+            transition:.2s ease;
+        }
+        .info-label{ 
+            font-size:9.5px; 
+            text-transform:uppercase; 
+            letter-spacing:.5px; 
+            color:var(--muted); 
+            font-weight:800; 
+        }
+        .info-value{ 
+            margin-top:6px; 
+            font-size:15px; 
+            color:var(--dark); 
+            font-weight:850; 
+        }
+
+        .info-box-slot { background: #f0f7ff; border-color: #e0eeff; }
+        .info-box-slot .info-label { color: #3b82f6; }
+
+        .info-box-hours { background: #f5f3ff; border-color: #ede9fe; }
+        .info-box-hours .info-label { color: #8b5cf6; }
+
+        .info-box-sale { background: #f0fdf4; border-color: #dcfce7; }
+        .info-box-sale .info-label { color: #16a34a; }
+        .info-box-sale .info-value { color: var(--primary); font-size:16px; }
+
+        .info-box-payout { background: #fff7ed; border-color: #ffedd5; }
+        .info-box-payout .info-label { color: #ea580c; }
+
+        /* TABLE */
+        .table-card{ background:#fff; border:1px solid var(--border); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); }
+        .table-header{ padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+        .table-header h3{ margin:0; color:var(--dark); font-size:15px; }
+        .table-header span{ font-size:11px; color:var(--muted); }
+        .table-scroll{ overflow-x:auto; }
+        table{ width:100%; min-width:1250px; border-collapse:collapse; }
+        thead th{ padding:12px 9px; background:var(--blue); color:#fff; font-size:10px; white-space:nowrap; }
+        thead th.red{ background:#ed1111; }
+        tbody td{ padding:10px 9px; border-bottom:1px solid #edf0f2; border-right:1px solid #edf0f2; text-align:center; font-size:10.5px; white-space:nowrap; }
+        tbody tr{ transition:.2s ease; }
+        tbody tr:hover{ background:#f6fbf4; }
+        tfoot tr td{ padding:12px 9px; background:#f8fafc; border-top:2px solid var(--border); font-size:11px; font-weight:800; text-align:center; }
+
+        /* RATE */
+        .rate{ display:inline-flex; align-items:center; justify-content:center; min-width:68px; padding:5px 9px; border-radius:15px; background:#ffd9bd; color:#8c4d22; font-weight:750; }
+        .rate.green{ background:#d9f2c9; color:#286d18; }
+        .rate.empty{ background:#e9edf0; color:#6b7280; }
+        .total-payment{ color:var(--primary); font-weight:800; }
+        .commission{ color:#b56c00; font-weight:750; }
+        .grand{ color:var(--dark); font-weight:850; }
+
+        /* STATUS */
+        .status{ display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:6px 10px; border-radius:20px; font-size:10px; font-weight:800; white-space:nowrap; }
+        .status.paid{ background:var(--green-light); color:#168238; }
+        .status.unpaid{ background:var(--red-light); color:var(--red-dark); }
+        .status::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+        /* PAYMENT */
+        .payment-filter{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px; align-items:center; }
+        .filter-btn{ border:1px solid var(--border); background:#fff; color:var(--muted); padding:9px 14px; border-radius:9px; font-size:11px; font-weight:750; cursor:pointer; }
+        .filter-btn.active{ color:#fff; background:var(--primary); border-color:var(--primary); }
+        .payment-summary{ display:grid; grid-template-columns:repeat(3,1fr); gap:15px; margin-bottom:18px; }
+        .payment-mini{ padding:18px; border-radius:15px; background:#fff; border:1px solid var(--border); box-shadow:var(--shadow); }
+        .payment-mini small{ color:var(--muted); font-size:10px; font-weight:700; }
+        .payment-mini strong{ display:block; margin-top:6px; color:var(--dark); font-size:21px; }
+
+        /* ADMIN */
+        .admin-badge{ display:inline-flex; align-items:center; gap:7px; padding:8px 12px; border-radius:20px; font-size:10px; font-weight:800; }
+        .admin-badge.user{ background:#f1f5f9; color:#64748b; }
+        .admin-badge.admin{ background:var(--green-light); color:var(--green); }
+        .admin-panel{ background:linear-gradient(135deg, #f0fdf4, #eff6ff); border:1px solid #cde6d1; border-radius:16px; padding:16px; margin-bottom:17px; }
+        .admin-panel-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+        .admin-panel h3{ margin:0 0 4px; color:var(--dark); font-size:15px; }
+        .admin-panel p{ margin:0; font-size:11px; color:var(--muted); }
+        .admin-tools{ display:flex; gap:8px; flex-wrap:wrap; }
+
+        /* ACTION */
+        .action-btn{ width:31px; height:31px; border:0; border-radius:8px; cursor:pointer; font-size:13px; margin:2px; transition:.2s; }
+        .action-btn:hover{ transform:translateY(-2px); }
+        .edit-btn{ background:var(--blue-light); color:var(--blue); }
+        .delete-btn{ background:var(--red-light); color:var(--red); }
+
+        /* NOTICE */
+        .notice{ display:flex; gap:10px; padding:13px 15px; margin-bottom:17px; border-radius:12px; background:#fff8e7; border:1px solid #f4dfab; color:#795d1d; font-size:11px; }
+
+        /* UPLOAD */
+        .upload-card{ padding:28px; text-align:center; background:#fff; border:2px dashed #cbd5e1; border-radius:18px; transition:.3s; }
+        .upload-card:hover{ border-color:var(--primary); background:#fbfef9; }
+        .upload-icon{ width:56px; height:56px; margin:auto; display:flex; align-items:center; justify-content:center; border-radius:15px; background:var(--primary-light); color:var(--primary); font-size:23px; }
+        .upload-card h3{ color:var(--dark); margin:12px 0 6px; }
+        .upload-card p{ color:var(--muted); font-size:11px; margin:0 0 15px; }
+        input[type=file]{ display:none; }
+
+        /* MODAL */
+        .modal{ position:fixed; inset:0; z-index:2000; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.58); backdrop-filter:blur(5px); }
+        .modal.show{ display:flex; }
+        .modal-box{ width:min(680px,100%); max-height:92vh; overflow:auto; background:#fff; border-radius:20px; box-shadow:0 30px 80px rgba(0,0,0,.25); animation:zoomIn .25s ease; }
+        .modal-box.wide{ width:min(850px,100%); }
+        .modal-head{ display:flex; align-items:center; justify-content:space-between; padding:17px 20px; border-bottom:1px solid var(--border); }
+        .modal-head h3{ margin:0; color:var(--dark); font-size:16px; }
+        .close{ width:34px; height:34px; border:0; border-radius:9px; background:#f1f5f9; cursor:pointer; font-size:18px; }
+        .modal-body{ padding:20px; }
+        .modal-footer{ display:flex; justify-content:flex-end; gap:8px; padding:15px 20px; border-top:1px solid var(--border); }
+
+        /* FORM */
+        .form-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:13px; }
+        .field{ margin-bottom:2px; }
+        .field.full{ grid-column:1/-1; }
+        .field label{ display:block; margin-bottom:5px; font-size:10px; color:var(--text); font-weight:750; }
+        .field input, .field select{ width:100%; padding:10px 11px; border:1px solid var(--border); border-radius:9px; outline:none; font-size:12px; }
+        .field input:focus, .field select:focus{ border-color:var(--primary); box-shadow:0 0 0 3px rgba(47,125,31,.08); }
+
+        /* LOGIN */
+        .login-box{ width:min(390px,100%); background:#fff; border-radius:20px; padding:25px; box-shadow:0 30px 80px rgba(0,0,0,.25); animation:zoomIn .25s ease; }
+        .login-logo{ width:52px; height:52px; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; border-radius:15px; color:#fff; background:linear-gradient(135deg, var(--primary), var(--blue)); font-size:23px; }
+        .login-box h3{ margin:0 0 5px; text-align:center; color:var(--dark); }
+        .login-box p{ margin:0 0 20px; text-align:center; color:var(--muted); font-size:11px; }
+        .login-error{ display:none; padding:9px; margin-bottom:10px; border-radius:8px; background:var(--red-light); color:var(--red-dark); font-size:10px; text-align:center; }
+
+        /* HOST MANAGEMENT */
+        .host-avatar{ width:38px; height:38px; border-radius:11px; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--primary), var(--blue)); color:#fff; font-size:11px; font-weight:800; }
+        .host-name{ text-align:left; }
+        .host-name strong{ display:block; color:var(--dark); font-size:11px; }
+        .host-name span{ font-size:9px; color:var(--muted); }
+        .active-pill{ display:inline-flex; padding:5px 9px; border-radius:20px; font-size:9px; font-weight:800; }
+        .active-pill.yes{ background:var(--green-light); color:#168238; }
+        .active-pill.no{ background:var(--red-light); color:var(--red-dark); }
+        .search-box{ position:relative; width:min(300px,100%); }
+        .search-box input{ width:100%; padding:10px 12px 10px 34px; border:1px solid var(--border); border-radius:10px; outline:none; font-size:11px; }
+        .search-box span{ position:absolute; left:11px; top:9px; font-size:14px; }
+
+        /* TOAST */
+        .toast{ position:fixed; right:25px; bottom:25px; z-index:3000; padding:13px 17px; color:#fff; background:#17212b; border-radius:12px; font-size:11px; box-shadow:0 15px 35px rgba(0,0,0,.2); transform:translateY(100px); opacity:0; pointer-events:none; transition:.3s ease; }
+        .toast.show{ transform:translateY(0); opacity:1; }
+
+        /* PRINT / PDF STYLES */
+        @media print {
+            body { background: #fff; color: #000; }
+            .topbar, .tabs-wrapper, .hero, .admin-panel, .notice, .btn, .upload-card, .toast { display: none !important; }
+            .container { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .table-card { box-shadow: none !important; border: 1px solid #000 !important; }
+            table { min-width: 100% !important; }
+            th, td { border: 1px solid #ccc !important; font-size: 10px !important; }
+        }
+
+        /* RESPONSIVE */
+        @media(max-width:1200px){
+            .summary-grid{ grid-template-columns:repeat(3,1fr); }
+            .profile-grid{ grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); }
+        }
+        @media(max-width:800px){
+            .summary-grid{ grid-template-columns:repeat(2,1fr); }
+            .info-grid{ grid-template-columns:repeat(2,1fr); }
+        }
+        @media(max-width:700px){
+            .topbar{ height:auto; padding:12px 15px; gap:10px; }
+            .brand-text h1{ font-size:15px; }
+            .brand-text span{ display:none; }
+            .top-actions .btn span{ display:none; }
+            .hero{ flex-direction:column; align-items:flex-start; padding:22px; }
+            .hero h2{ font-size:22px; }
+            .hero-badge{ width:100%; }
+            .payment-summary{ grid-template-columns:1fr; }
+            .form-grid{ grid-template-columns:1fr; }
+            .field.full{ grid-column:auto; }
+            .info-grid{ grid-template-columns:1fr; }
+            .admin-panel-head{ align-items:flex-start; }
+            .profile-grid{ grid-template-columns:1fr; }
+        }
+        @media(max-width:450px){
+            .summary-grid{ grid-template-columns:1fr; }
+            .hero h2{ font-size:20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+    <div class="brand">
+        <div class="logo">📊</div>
+        <div class="brand-text">
+            <h1>Claim Host Live</h1>
+            <span>Pengurusan claim, pembayaran & komisyen</span>
+        </div>
+    </div>
+
+    <div class="top-actions">
+        <span id="adminStatus" class="admin-badge user">👤 User</span>
+        <button id="adminLoginButton" class="btn btn-light" onclick="openAdminLogin()">🔐 <span>Admin Login</span></button>
+        <button id="adminLogoutButton" class="btn btn-red" style="display:none" onclick="logoutAdmin()">🚪 <span>Logout</span></button>
+        <button class="btn btn-light" onclick="openUpload()">📁 <span>Upload Excel</span></button>
+        <button class="btn btn-primary" onclick="window.scrollTo({top:0,behavior:'smooth'})">🏠 <span>Dashboard</span></button>
+    </div>
+</header>
+
+<main class="container">
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-content">
+        <h2>Borang Claim Host Live</h2>
+        <p>Rekod tuntutan host live terkini</p>
+    </div>
+    <div class="hero-badge">
+        <span>Pengurusan Syarikat</span>
+        <strong id="heroHostName">DASHBOARD UTAMA</strong>
+        <small id="heroMonthYear">September 2026</small>
+    </div>
+</section>
+
+<!-- MAIN TABS -->
+<div class="tabs-wrapper">
+    <div class="tabs" id="dynamicTabs">
+        <button class="tab active" onclick="showTab('dashboard',this)">📊 Dashboard Utama</button>
+        <button class="tab" onclick="showTab('claim',this)">📋 Rekod Borang Claim</button>
+        <button class="tab" onclick="showTab('payment',this)">💳 Pembayaran</button>
+        
+        <!-- DYNAMIC HOST TABS GENERATED HERE -->
+        <div id="hostTabList" style="display:flex; gap:5px;"></div>
+
+        <button class="tab" onclick="showTab('upload',this)">📥 Import Data</button>
+        <!-- ADMIN ONLY -->
+        <button id="hostManagementTab" class="tab admin-only" onclick="showTab('hostManagement',this)">👥 Pengurusan Host</button>
+    </div>
+</div>
+
+<!-- DASHBOARD UTAMA (KHAS UNTUK PENGURUSAN) -->
+<section id="dashboard" class="tab-content active">
+    <div class="section-title">
+        <h3>Ringkasan Keseluruhan Syarikat</h3>
+        <span id="dashboardSubtitleMonth">September 2026</span>
+    </div>
+
+    <div class="summary-grid">
+        <div class="card summary-card card-blue">
+            <div class="card-head">
+                <div>
+                    <div class="card-label">JUMLAH HOST AKTIF</div>
+                    <div class="card-value" id="totalActiveHosts">0</div>
+                </div>
+                <div class="card-icon">👥</div>
+            </div>
+        </div>
+        <div class="card summary-card card-green">
+            <div class="card-head">
+                <div>
+                    <div class="card-label">TOTAL SLOT KESELURUHAN</div>
+                    <div class="card-value" id="totalSlotAll">0</div>
+                </div>
+                <div class="card-icon">🎙️</div>
+            </div>
+        </div>
+        <div class="card summary-card card-orange">
+            <div class="card-head">
+                <div>
+                    <div class="card-label">TOTAL SALE (GMV)</div>
+                    <div class="card-value" id="totalSaleAll">RM0.00</div>
+                </div>
+                <div class="card-icon">💰</div>
+            </div>
+        </div>
+        <div class="card summary-card card-purple">
+            <div class="card-head">
+                <div>
+                    <div class="card-label">JUMLAH BAYARAN + KOMISYEN</div>
+                    <div class="card-value" id="totalPayoutAll">RM0.00</div>
+                </div>
+                <div class="card-icon">📈</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JADUAL KEDUDUKAN SALES HOST TERTINGGI DENGAN PENAPIS BULAN & TAHUN -->
+    <div class="section-title">
+        <h3>🏆 Sales Host Tertinggi</h3>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <label for="dashboardFilterYear" style="font-size:11px; font-weight:750; color:var(--dark);">📆 Tapis Tahun:</label>
+            <select id="dashboardFilterYear" onchange="renderDashboard()" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer; background:#fff; font-weight:700;">
+            </select>
+
+            <label for="dashboardFilterMonth" style="font-size:11px; font-weight:750; color:var(--dark); margin-left:6px;">📅 Tapis Bulan:</label>
+            <select id="dashboardFilterMonth" onchange="renderDashboard()" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer; background:#fff; font-weight:700;">
+            </select>
+        </div>
+    </div>
+
+    <div class="table-card" style="margin-bottom:25px;">
+        <div class="table-header">
+            <h3>Carta Kedudukan Jualan Host</h3>
+            <span>Tersusun daripada Sales GMV Tertinggi</span>
+        </div>
+        <div class="table-scroll">
+            <table style="min-width:700px;">
+                <thead>
+                    <tr>
+                        <th style="width:70px;">Kedudukan</th>
+                        <th style="text-align:left; padding-left:15px;">Nama Host</th>
+                        <th>Jumlah Slot</th>
+                        <th>Jumlah Hours</th>
+                        <th>Total Sale (GMV)</th>
+                        <th>Total Komisyen</th>
+                        <th>Grand Total</th>
+                    </tr>
+                </thead>
+                <tbody id="topHostSalesTable">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PRESTASI HOST BULAN INI UNTUK PENGURUSAN -->
+    <div class="section-title">
+        <h3>📊 Prestasi Host Bulan Ini</h3>
+        <span>Ringkasan Pantas Setiap Host</span>
+    </div>
+
+    <div class="profile-grid" id="hostPerformanceGrid">
+    </div>
+</section>
+
+<!-- CLAIM -->
+<section id="claim" class="tab-content">
+    <div class="section-title">
+        <h3>Rekod Semua Borang Claim</h3>
+        <span>Edit/Delete hanya Admin</span>
+    </div>
+
+    <div class="notice">
+        <div>🔐</div>
+        <div>
+            <strong>Kawalan Admin</strong><br>
+            Rekod hanya boleh diedit atau dipadam selepas Admin Login. User biasa hanya mempunyai akses untuk melihat rekod.
+        </div>
+    </div>
+
+    <div class="admin-panel" id="claimAdminPanel" style="display:none">
+        <div class="admin-panel-head">
+            <div>
+                <h3>👑 Mode Admin Aktif</h3>
+                <p>Anda boleh mengedit, menambah, dan memadam rekod claim.</p>
+            </div>
+            <div class="admin-tools">
+                <button class="btn btn-primary" onclick="openAddClaim()">➕ Tambah Claim Manual</button>
+                <button class="btn btn-orange" id="btnDeleteSelectedHost" onclick="deleteHostRecordsOnly()" style="display:none;">🗑️ Padam Rekod Host Ini</button>
+                <button class="btn btn-red" onclick="clearAllData()">🗑️ Padam SEMUA Rekod</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header" style="flex-wrap:wrap; gap:10px;">
+            <h3 id="claimTableTitle">REKOD SEMUA CLAIM HOST</h3>
+            
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <label for="claimFilterHost" style="font-size:11px; font-weight:750; color:var(--dark);">🔍 Tapis Host:</label>
+                <select id="claimFilterHost" onchange="renderClaimTable()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer;">
+                </select>
+
+                <label for="claimFilterYear" style="font-size:11px; font-weight:750; color:var(--dark); margin-left:8px;">📆 Tapis Tahun:</label>
+                <select id="claimFilterYear" onchange="renderClaimTable()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer;">
+                </select>
+
+                <label for="claimFilterMonth" style="font-size:11px; font-weight:750; color:var(--dark); margin-left:8px;">📅 Tapis Bulan:</label>
+                <select id="claimFilterMonth" onchange="renderClaimTable()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer;">
+                </select>
+
+                <button class="btn btn-light" onclick="exportClaimCSV()" title="Eksport ke CSV" style="padding:6px 12px; margin-left:5px;">📊 Export CSV</button>
+                <button class="btn btn-light" onclick="exportClaimPDF()" title="Cetak / Eksport PDF" style="padding:6px 12px;">📄 Export PDF</button>
+
+                <span id="claimCount" style="margin-left:5px;">0 rekod</span>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Host</th>
+                        <th>Tarikh</th>
+                        <th>Hari</th>
+                        <th>Waktu Mula</th>
+                        <th>Waktu Tamat</th>
+                        <th>Hours</th>
+                        <th>Slot</th>
+                        <th class="red">Rate/Hours</th>
+                        <th>Payment Slot</th>
+                        <th>Sale GMV</th>
+                        <th class="red">Komisyen %</th>
+                        <th>Komisyen RM</th>
+                        <th>Grand Total</th>
+                        <th class="red">Pengesahan</th>
+                        <th class="red">Pembayaran</th>
+                        <th>Status</th>
+                        <th class="red">Catatan</th>
+                        <th id="actionHeader" style="display:none">Tindakan</th>
+                    </tr>
+                </thead>
+                <tbody id="claimTable"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- PAYMENT -->
+<section id="payment" class="tab-content">
+    <div class="section-title">
+        <h3>Rekod Pembayaran Semua Host</h3>
+        <span>Status berdasarkan Tarikh Pembayaran</span>
+    </div>
+
+    <div class="payment-summary">
+        <div class="payment-mini">
+            <small>SEMUA CLAIM</small>
+            <strong id="paymentAllAmount">RM0.00</strong>
+        </div>
+        <div class="payment-mini">
+            <small>DAH BAYAR</small>
+            <strong id="paidAmount">RM0.00</strong>
+        </div>
+        <div class="payment-mini">
+            <small>BELUM BAYAR</small>
+            <strong id="unpaidAmount">RM0.00</strong>
+        </div>
+    </div>
+
+    <div class="payment-filter">
+        <button class="filter-btn active" onclick="setPaymentFilter('all',this)">Semua Status (<span id="countAll">0</span>)</button>
+        <button class="filter-btn" onclick="setPaymentFilter('paid',this)">✅ Dah Bayar (<span id="countPaid">0</span>)</button>
+        <button class="filter-btn" onclick="setPaymentFilter('unpaid',this)">⏳ Belum Bayar (<span id="countUnpaid">0</span>)</button>
+        
+        <div style="margin-left:auto; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <label for="paymentFilterHost" style="font-size:11px; font-weight:750; color:var(--dark);">🔍 Tapis Host:</label>
+                <select id="paymentFilterHost" onchange="renderPaymentTable()" style="padding:7px 12px; border-radius:9px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer; background:#fff;">
+                </select>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px;">
+                <label for="paymentFilterYear" style="font-size:11px; font-weight:750; color:var(--dark);">📆 Tapis Tahun:</label>
+                <select id="paymentFilterYear" onchange="renderPaymentTable()" style="padding:7px 12px; border-radius:9px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer; background:#fff;">
+                </select>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:6px;">
+                <label for="paymentFilterMonth" style="font-size:11px; font-weight:750; color:var(--dark);">📅 Tapis Bulan:</label>
+                <select id="paymentFilterMonth" onchange="renderPaymentTable()" style="padding:7px 12px; border-radius:9px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer; background:#fff;">
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Status Pembayaran Host</h3>
+            <span>Tarikh pembayaran = Dah Bayar</span>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tarikh</th>
+                        <th>Host</th>
+                        <th>Payment Slot</th>
+                        <th>Komisyen</th>
+                        <th>Jumlah</th>
+                        <th>Tarikh Pembayaran</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentTable"></tbody>
+                <tfoot id="paymentTableFoot">
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- INDIVIDUAL HOST VIEW -->
+<section id="hostIndividual" class="tab-content">
+    <div class="section-title">
+        <h3 id="hostIndividualTitle">NAMA HOST</h3>
+        
+        <!-- PENAPIS BULAN & TAHUN KHAS UNTUK TAB INDIVIDU HOST -->
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <label for="individualHostFilterYear" style="font-size:11px; font-weight:750; color:var(--dark);">📆 Tapis Tahun:</label>
+            <select id="individualHostFilterYear" onchange="renderIndividualHostCurrent()" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer; background:#fff; font-weight:700;">
+            </select>
+
+            <label for="individualHostFilterMonth" style="font-size:11px; font-weight:750; color:var(--dark); margin-left:6px;">📅 Tapis Bulan:</label>
+            <select id="individualHostFilterMonth" onchange="renderIndividualHostCurrent()" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); font-size:11px; outline:none; cursor:pointer; background:#fff; font-weight:700;">
+            </select>
+            <span class="dynamicHostMonthSpan" style="margin-left:5px;">September 2026</span>
+        </div>
+    </div>
+    <div id="hostIndividualContent"></div>
+</section>
+
+<!-- UPLOAD -->
+<section id="upload" class="tab-content">
+    <div class="section-title">
+        <h3>Import Excel Terkini</h3>
+        <span>Kemaskini data secara berperingkat</span>
+    </div>
+
+    <div class="notice">
+        <div>💡</div>
+        <div>
+            <strong>Penting:</strong> Data yang diimport akan **DITAMBAH** di bawah data sedia ada secara selamat. Data sedia ada atau rekod Host lain tidak akan terpadam.
+        </div>
+    </div>
+
+    <div class="upload-card">
+        <div class="upload-icon">📊</div>
+        <h3>Upload Excel Claim Host</h3>
+        <p>Sokongan .xlsx, .xls dan .csv</p>
+        
+        <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+            <label for="excelFile" class="btn btn-primary">📁 Pilih Excel & Tambah Data</label>
+            <button class="btn btn-orange" onclick="downloadTemplate()">📥 Muat Turun Contoh Templat Excel</button>
+            <button class="btn btn-light" onclick="resetToDefaultData()" title="Kembalikan data asal jika bermasalah">🔄 Reset Data Contoh Asal</button>
+        </div>
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="importExcel(event)">
+    </div>
+</section>
+
+<!-- ADMIN HOST MANAGEMENT -->
+<section id="hostManagement" class="tab-content">
+    <div class="section-title">
+        <div>
+            <h3>👥 Pengurusan Host</h3>
+            <span>Tambah, kemaskini dan delete host</span>
+        </div>
+        <button class="btn btn-primary" onclick="openHostModal()">➕ Tambah Host</button>
+    </div>
+
+    <div class="card" style="margin-bottom:18px">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:15px; flex-wrap:wrap;">
+            <div>
+                <div class="card-label">JUMLAH HOST BERDAFTAR</div>
+                <div class="card-value" id="hostTotalCount">0</div>
+            </div>
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="hostSearch" placeholder="Cari nama host..." oninput="renderHosts()">
+            </div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Senarai Host</h3>
+            <span>Admin Control</span>
+        </div>
+        <div class="table-scroll">
+            <table style="min-width:850px">
+                <thead>
+                    <tr>
+                        <th>Avatar</th>
+                        <th>Nama Host</th>
+                        <th>Bank</th>
+                        <th>No. Akaun</th>
+                        <th>Telefon</th>
+                        <th>Status</th>
+                        <th>Tindakan</th>
+                    </tr>
+                </thead>
+                <tbody id="hostTable"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="modal" id="adminLoginModal">
+    <div class="login-box">
+        <div class="login-logo">🔐</div>
+        <h3>Admin Login</h3>
+        <p>Login diperlukan untuk Edit / Delete rekod dan Pengurusan Host</p>
+        <div class="login-error" id="loginError">Password admin tidak betul.</div>
+        <div class="field">
+            <label>Password Admin</label>
+            <input type="password" id="adminPassword" placeholder="Masukkan password" onkeydown="if(event.key==='Enter') loginAdmin()">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:15px;">
+            <button class="btn btn-light" onclick="closeAdminLogin()">Batal</button>
+            <button class="btn btn-primary" onclick="loginAdmin()">🔓 Login</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT CLAIM MODAL -->
+<div class="modal" id="editModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>Edit Rekod Claim</h3>
+            <button class="close" onclick="closeEdit()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="field full">
+                    <label>Pilih Host *</label>
+                    <select id="editHostSelect"></select>
+                </div>
+                <div class="field"><label>Tarikh</label><input id="editDate" type="text"></div>
+                <div class="field"><label>Hari</label><input id="editDay" type="text"></div>
+                <div class="field"><label>Waktu Mula</label><input id="editStart" type="text"></div>
+                <div class="field"><label>Waktu Tamat</label><input id="editEnd" type="text"></div>
+                <div class="field"><label>Total Hours</label><input id="editHours" type="number" step="0.01"></div>
+                <div class="field"><label>Total Slot</label><input id="editSlot" type="number"></div>
+                <div class="field"><label>Slot Rate / Hours</label><input id="editRate" type="number" step="0.01"></div>
+                <div class="field"><label>Total Payment Slot</label><input id="editPayment" type="number" step="0.01"></div>
+                <div class="field"><label>Total Sale GMV</label><input id="editSale" type="number" step="0.01"></div>
+                <div class="field"><label>Komisyen %</label><input id="editCommissionRate" type="number" step="0.01"></div>
+                <div class="field"><label>Total Komisyen RM</label><input id="editCommission" type="number" step="0.01"></div>
+                <div class="field"><label>Tarikh Pengesahan</label><input id="editConfirmation" type="text"></div>
+                <div class="field"><label>Tarikh Pembayaran</label><input id="editPaymentDate" type="text" placeholder="Kosong = Belum Bayar"></div>
+                <div class="field full"><label>Catatan</label><input id="editNote" type="text"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="closeEdit()">Batal</button>
+            <button class="btn btn-primary" onclick="saveEdit()">💾 Simpan Perubahan</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD CLAIM MODAL -->
+<div class="modal" id="claimAddModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>➕ Tambah Rekod Claim</h3>
+            <button class="close" onclick="closeAddClaim()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="field full">
+                    <label>Pilih Host *</label>
+                    <select id="addHostSelect"></select>
+                </div>
+                <div class="field"><label>Tarikh</label><input id="addDate" type="text" placeholder="Contoh: 31/8/2026"></div>
+                <div class="field"><label>Hari</label><input id="addDay" type="text" placeholder="Contoh: Sabtu"></div>
+                <div class="field"><label>Waktu Mula</label><input id="addStart" type="text" placeholder="Contoh: 5.00 pm"></div>
+                <div class="field"><label>Waktu Tamat</label><input id="addEnd" type="text" placeholder="Contoh: 7.00 pm"></div>
+                <div class="field"><label>Hours</label><input id="addHours" type="number" step="0.01" value="2"></div>
+                <div class="field"><label>Slot</label><input id="addSlot" type="number" value="1"></div>
+                <div class="field"><label>Rate / Hours</label><input id="addRate" type="number" step="0.01" value="50"></div>
+                <div class="field"><label>Payment Slot</label><input id="addPayment" type="number" step="0.01" value="100"></div>
+                <div class="field"><label>Sale GMV</label><input id="addSale" type="number" step="0.01" value="0"></div>
+                <div class="field"><label>Komisyen %</label><input id="addCommissionRate" type="number" step="0.01" value="0"></div>
+                <div class="field"><label>Komisyen RM</label><input id="addCommission" type="number" step="0.01" value="0"></div>
+                <div class="field"><label>Tarikh Pengesahan</label><input id="addConfirmation" type="text"></div>
+                <div class="field"><label>Tarikh Pembayaran</label><input id="addPaymentDate" type="text" placeholder="Kosong = Belum Bayar"></div>
+                <div class="field full"><label>Catatan</label><input id="addNote" type="text"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="closeAddClaim()">Batal</button>
+            <button class="btn btn-primary" onclick="saveNewClaim()">💾 Tambah Rekod</button>
+        </div>
+    </div>
+</div>
+
+<!-- HOST MODAL -->
+<div class="modal" id="hostModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3 id="hostModalTitle">➕ Tambah Host</h3>
+            <button class="close" onclick="closeHostModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="notice">
+                <div>👤</div>
+                <div>Maklumat ini akan digunakan untuk paparan profil host dan pembayaran.</div>
+            </div>
+            <div class="form-grid">
+                <div class="field full"><label>Nama Penuh Host *</label><input id="hostName" type="text" placeholder="Contoh: RIZQ HAKIM BIN ISMAIL"></div>
+                <div class="field"><label>Nama Paparan *</label><input id="hostDisplayName" type="text" placeholder="Contoh: RIZQ HAKIM"></div>
+                <div class="field"><label>Initial / Avatar</label><input id="hostInitial" type="text" maxlength="4" placeholder="RH"></div>
+                <div class="field"><label>Bank</label><input id="hostBank" type="text" placeholder="CIMB"></div>
+                <div class="field"><label>No. Akaun</label><input id="hostAccount" type="text" placeholder="No akaun bank"></div>
+                <div class="field"><label>No. Telefon</label><input id="hostPhone" type="text" placeholder="01X-XXXXXXX"></div>
+                <div class="field">
+                    <label>Status Host</label>
+                    <select id="hostActive">
+                        <option value="true">Aktif</option>
+                        <option value="false">Tidak Aktif</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="closeHostModal()">Batal</button>
+            <button class="btn btn-primary" onclick="saveHost()">💾 Simpan Host</button>
+        </div>
+    </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal" id="uploadModal">
+    <div class="login-box">
+        <div class="login-logo">📊</div>
+        <h3>Upload Excel</h3>
+        <p>Pilih fail Excel terkini</p>
+        <label for="excelFileModal" class="btn btn-primary" style="width:100%">📁 Pilih Excel</label>
+        <input type="file" id="excelFileModal" accept=".xlsx,.xls,.csv" onchange="importExcel(event)">
+        <button class="btn btn-light" style="width:100%; margin-top:8px;" onclick="closeUpload()">Batal</button>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   ADMIN & STATE SETUP
+========================================================= */
+const ADMIN_PASSWORD = "admin123";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-F3aYx71-Sim2GPhGo0rrsh6wl32t084uTEG9-jb-hvGTq4S9IbSZR34hHgkk5aBA/exec";
+
+let isAdmin = false;
+let editingIndex = -1;
+let editingHostIndex = -1;
+let paymentFilter = "all";
+
+/* STATE DATA - SENARAI HOST DIBINA 100% DARIPADA GOOGLE SHEETS */
+let hosts = JSON.parse(localStorage.getItem('claim_hosts')) || [];
+let currentData = JSON.parse(localStorage.getItem('claim_currentData')) || [];
+let activeHostIndex = Number(localStorage.getItem('claim_activeHostIndex')) || 0;
+
+/* =========================================================
+   FUNGSI AUTO-FORMAT TARIKH (FORMAT DD/MM/YYYY) & MASA
+========================================================= */
+
+// Tukar Semua Tarikh ke Format Seragam DD/MM/YYYY (cth: 31/8/2026 atau 1/9/2026)
+function formatSheetDate(val) {
+    if (!val && val !== 0) return "";
+    let str = String(val).trim();
+    
+    // 1. Jika ia nombor siri Google Sheet (cth: 46031 = 1/9/2026)
+    let num = Number(str);
+    if (!isNaN(num) && num > 40000 && num < 60000) {
+        let jsDate = new Date((num - 25569) * 86400 * 1000);
+        let d = jsDate.getUTCDate();
+        let m = jsDate.getUTCMonth() + 1;
+        let y = jsDate.getUTCFullYear();
+        return `${d}/${m}/${y}`;
+    }
+
+    // 2. Jika ia teks biasa seperti "1 Sept", "31 Ogos", "1 Sept 2026"
+    const monthMap = {
+        jan:1, januari:1, january:1,
+        feb:2, februari:2, february:2,
+        mar:3, mac:3, march:3,
+        apr:4, april:4,
+        may:5, mei:5,
+        jun:6, june:6,
+        jul:7, julai:7, july:7,
+        aug:8, ogo:8, ogos:8, august:8,
+        sep:9, sept:9, september:9,
+        oct:10, okt:10, oktober:10, october:10,
+        nov:11, november:11,
+        dec:12, dis:12, disember:12, december:12
+    };
+
+    let lower = str.toLowerCase();
+    let matchText = lower.match(/^(\d{1,2})\s*([a-zA-Z]+)(?:\s*(\d{4}))?/);
+    if (matchText) {
+        let day = matchText[1];
+        let mText = matchText[2];
+        let year = matchText[3] || "2026";
+        let monthNum = monthMap[mText];
+        if (monthNum) {
+            return `${day}/${monthNum}/${year}`;
+        }
+    }
+
+    return str;
+}
+
+function formatSheetTime(val) {
+    if (!val && val !== 0) return "";
+    let str = String(val).trim();
+    
+    if (str.toLowerCase().includes("am") || str.toLowerCase().includes("pm")) {
+        return str;
+    }
+
+    let num = Number(str);
+    if (!isNaN(num) && num >= 0 && num <= 1 && str.includes(".")) {
+        let totalMinutes = Math.round(num * 1440);
+        let hours = Math.floor(totalMinutes / 60);
+        let minutes = totalMinutes % 60;
+        let period = hours >= 12 ? "pm" : "am";
+        
+        hours = hours % 12;
+        if (hours === 0) hours = 12;
+        
+        let minStr = minutes < 10 ? "0" + minutes : minutes;
+        return `${hours}.${minStr} ${period}`;
+    }
+    return str;
+}
+
+async function saveData() {
+    localStorage.setItem('claim_hosts', JSON.stringify(hosts));
+    localStorage.setItem('claim_currentData', JSON.stringify(currentData));
+    localStorage.setItem('claim_activeHostIndex', activeHostIndex);
+
+    if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== "") {
+        try {
+            await fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(currentData)
+            });
+            showToast("Data diselaraskan ke Google Sheets!");
+        } catch (error) {
+            console.error("Ralat menyimpan ke Google Sheets:", error);
+        }
+    }
+}
+
+function getNormalizedHostName(rawName) {
+    if (!rawName) return "";
+    let clean = String(rawName).trim().toUpperCase();
+    
+    for (let h of hosts) {
+        let existingName = h.displayName.toUpperCase();
+        if (clean === existingName || clean.startsWith(existingName) || existingName.startsWith(clean)) {
+            return h.displayName;
+        }
+    }
+    return clean;
+}
+
+async function loadFromGoogleSheets() {
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "") return;
+
+    try {
+        const response = await fetch(GOOGLE_SCRIPT_URL);
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+            data.forEach(row => {
+                if (row.date) row.date = formatSheetDate(row.date);
+                if (row.start) row.start = formatSheetTime(row.start);
+                if (row.end) row.end = formatSheetTime(row.end);
+            });
+
+            currentData = data;
+            
+            hosts = [];
+
+            data.forEach(row => {
+                let rawName = row.hostName ? String(row.hostName).trim() : "";
+                if (rawName !== "") {
+                    let cleanName = rawName.toUpperCase();
+                    
+                    let exists = hosts.some(h => h.displayName.toUpperCase() === cleanName);
+
+                    if (!exists) {
+                        let initial = cleanName.split(/\s+/).slice(0,2).map(w => w[0]).join("").toUpperCase() || "H";
+                        
+                        hosts.push({
+                            name: cleanName,
+                            displayName: cleanName,
+                            initial: initial,
+                            bank: "—",
+                            account: "—",
+                            phone: "—",
+                            active: true
+                        });
+                    }
+                    row.hostName = cleanName;
+                }
+            });
+
+            localStorage.setItem('claim_hosts', JSON.stringify(hosts));
+            localStorage.setItem('claim_currentData', JSON.stringify(currentData));
+            
+            refreshAll();
+            renderHosts();
+            showToast("Data terkini dari Google Sheets berjaya dimuat turun!");
+        }
+    } catch (error) {
+        console.error("Ralat membaca dari Google Sheets:", error);
+    }
+}
+
+function resetToDefaultData() {
+    if(confirm("Adakah anda pasti mahu mereset semua data? Data tempatan akan dipadam.")) {
+        hosts = [];
+        currentData = [];
+        activeHostIndex = 0;
+        localStorage.removeItem('claim_hosts');
+        localStorage.removeItem('claim_currentData');
+        loadFromGoogleSheets();
+        showToast("Sistem di-reset & memuat semula dari Google Sheets.");
+    }
+}
+
+function clearAllData() {
+    if(!isAdmin) return;
+    if(confirm("Adakah anda pasti mahu memadam SEMUA rekod claim dari sistem? Rekod tidak boleh dipulihkan.")) {
+        currentData = [];
+        saveData();
+        refreshAll();
+        showToast("Semua rekod claim telah dipadam.");
+    }
+}
+
+function deleteHostRecordsOnly() {
+    if(!isAdmin) {
+        showToast("Akses Admin diperlukan.");
+        return;
+    }
+
+    const selectedHost = document.getElementById("claimFilterHost")?.value;
+    if(!selectedHost || selectedHost === "all") {
+        showToast("Sila pilih Host pada ruangan penapis terlebih dahulu.");
+        return;
+    }
+
+    const targetCount = currentData.filter(r => (r.hostName || "").toLowerCase().trim() === selectedHost.toLowerCase().trim()).length;
+
+    if(targetCount === 0) {
+        showToast(`Tiada rekod ditemui untuk host ${selectedHost}.`);
+        return;
+    }
+
+    if(confirm(`Adakah anda pasti mahu memadam SEMUA ${targetCount} rekod claim bagi "${selectedHost}" sahaja?\n\nRekod host lain tidak akan terjejas.`)) {
+        currentData = currentData.filter(r => (r.hostName || "").toLowerCase().trim() !== selectedHost.toLowerCase().trim());
+        saveData();
+        refreshAll();
+        showToast(`Semua rekod bagi ${selectedHost} telah berjaya dipadam!`);
+    }
+}
+
+function normalizeStr(val) {
+    if (val === null || val === undefined) return "";
+    return String(val)
+        .toLowerCase()
+        .replace(/[:.\s]/g, "")
+        .trim();
+}
+
+/* FUNGSI EXTRACT TAHUN DARI TARIKH (MENGENDALI FORMAT DD/MM/YYYY) */
+function extractYearFromDateString(dateStr) {
+    if (!dateStr) return "2026";
+    const str = String(dateStr).trim();
+    
+    const match = str.match(/\b(20\d{2})\b/);
+    if (match) return match[1];
+
+    const parts = str.split('/');
+    if (parts.length === 3 && parts[2].length === 4) {
+        return parts[2];
+    }
+    return "2026";
+}
+
+/* FUNGSI EXTRACT BULAN DARI TARIKH (MENGENDALI FORMAT DD/MM/YYYY) */
+function extractMonthFromDateString(dateStr) {
+    if (!dateStr) return "Lain-lain";
+    const str = String(dateStr).trim();
+
+    const monthNamesMalay = [
+        "Januari", "Februari", "Mac", "April", "Mei", "Jun", 
+        "Julai", "Ogos", "September", "Oktober", "November", "Disember"
+    ];
+
+    // Format DD/MM/YYYY (contoh: 31/8/2026 -> index 1 ialah bulan 8)
+    const numericParts = str.split(/[\/\-\.]/);
+    if (numericParts.length >= 2) {
+        let m = parseInt(numericParts[1], 10);
+        if (m >= 1 && m <= 12) {
+            return monthNamesMalay[m - 1];
+        }
+    }
+
+    const lowerStr = str.toLowerCase();
+    
+    if (/\b(jan|januari|january)\b/.test(lowerStr)) return "Januari";
+    if (/\b(feb|februari|february)\b/.test(lowerStr)) return "Februari";
+    if (/\b(mar|mac|march)\b/.test(lowerStr)) return "Mac";
+    if (/\b(apr|april)\b/.test(lowerStr)) return "April";
+    if (/\b(may|mei)\b/.test(lowerStr)) return "Mei";
+    if (/\b(jun|june)\b/.test(lowerStr)) return "Jun";
+    if (/\b(jul|julai|july)\b/.test(lowerStr)) return "Julai";
+    if (/\b(aug|ogo|ogos|august)\b/.test(lowerStr)) return "Ogos";
+    if (/\b(sep|sept|september)\b/.test(lowerStr)) return "September";
+    if (/\b(oct|okt|oktober|october)\b/.test(lowerStr)) return "Oktober";
+    if (/\b(nov|november)\b/.test(lowerStr)) return "November";
+    if (/\b(dec|dis|disember|december)\b/.test(lowerStr)) return "Disember";
+
+    return str;
+}
+
+function getLatestMonthName() {
+    if(!currentData.length) return "September 2026";
+    const lastRecord = currentData[currentData.length - 1];
+    const month = extractMonthFromDateString(lastRecord.date || "");
+    const year = extractYearFromDateString(lastRecord.date || "");
+    return month ? `${month} ${year}` : "September 2026";
+}
+
+function populateDateDropdowns() {
+    const monthSet = new Set();
+    const yearSet = new Set();
+
+    currentData.forEach(row => {
+        if(row.date) {
+            monthSet.add(extractMonthFromDateString(row.date));
+            yearSet.add(extractYearFromDateString(row.date));
+        }
+    });
+
+    const monthList = Array.from(monthSet);
+    const yearList = Array.from(yearSet);
+    if (!yearList.length) yearList.push("2026");
+
+    const selectConfigs = [
+        { monthId: "dashboardFilterMonth", yearId: "dashboardFilterYear" },
+        { monthId: "individualHostFilterMonth", yearId: "individualHostFilterYear" },
+        { monthId: "claimFilterMonth", yearId: "claimFilterYear" },
+        { monthId: "paymentFilterMonth", yearId: "paymentFilterYear" }
+    ];
+
+    selectConfigs.forEach(cfg => {
+        const mSelect = document.getElementById(cfg.monthId);
+        if(mSelect) {
+            const curVal = mSelect.value || "all";
+            mSelect.innerHTML = `<option value="all">-- Semua Bulan --</option>`;
+            monthList.forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m;
+                opt.textContent = m;
+                if(m === curVal) opt.selected = true;
+                mSelect.appendChild(opt);
+            });
+        }
+
+        const ySelect = document.getElementById(cfg.yearId);
+        if(ySelect) {
+            const curVal = ySelect.value || "all";
+            ySelect.innerHTML = `<option value="all">-- Semua Tahun --</option>`;
+            yearList.forEach(y => {
+                const opt = document.createElement("option");
+                opt.value = y;
+                opt.textContent = y;
+                if(y === curVal) opt.selected = true;
+                ySelect.appendChild(opt);
+            });
+        }
+    });
+}
+
+function populatePaymentFilterHostSelect() {
+    const select = document.getElementById("paymentFilterHost");
+    if(!select) return;
+
+    const curVal = select.value || "all";
+    select.innerHTML = `<option value="all">-- Semua Host --</option>`;
+
+    hosts.forEach(h => {
+        const name = h.displayName || h.name;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        if(name.toLowerCase().trim() === curVal.toLowerCase().trim()) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+function getActiveHost(){
+    if(!hosts.length){
+        return { name:"TIADA HOST", displayName:"TIADA HOST", initial:"--", bank:"", account:"", phone:"", active:false };
+    }
+    if(!hosts[activeHostIndex]){
+        activeHostIndex = 0;
+    }
+    return hosts[activeHostIndex];
+}
+
+function money(value){
+    return "RM" + (Number(value)||0).toLocaleString("en-MY", { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function parseNumber(value){
+    if(value === null || value === undefined || value === "") return 0;
+    if(typeof value === "number") return value;
+    let clean = String(value).replace(/RM/gi,"").replace(/,/g,"").replace(/%/g,"").trim();
+    let result = parseFloat(clean);
+    return isNaN(result) ? 0 : result;
+}
+
+function calculateTotals(filteredHostName = null, selectedMonth = "all", selectedYear = "all"){
+    let totalSlot = 0, totalHours = 0, totalSale = 0, totalCommission = 0, totalPayment = 0;
+    let totalPaidAmount = 0;
+    let datesPaidList = [];
+    
+    let targetData = currentData;
+    
+    if(filteredHostName) {
+        targetData = targetData.filter(r => (r.hostName || "").toLowerCase().trim() === filteredHostName.toLowerCase().trim());
+    }
+
+    if(selectedMonth && selectedMonth !== "all") {
+        targetData = targetData.filter(r => extractMonthFromDateString(r.date) === selectedMonth);
+    }
+
+    if(selectedYear && selectedYear !== "all") {
+        targetData = targetData.filter(r => extractYearFromDateString(r.date) === selectedYear);
+    }
+
+    targetData.forEach(row => {
+        const slotAmt = Number(row.payment)||0;
+        const commAmt = Number(row.commission)||0;
+        const grandRow = slotAmt + commAmt;
+
+        totalSlot += Number(row.slot)||0;
+        totalHours += Number(row.hours)||0;
+        totalSale += Number(row.sale)||0;
+        totalCommission += commAmt;
+        totalPayment += slotAmt;
+
+        if(isPaid(row)) {
+            totalPaidAmount += grandRow;
+            if(row.date) datesPaidList.push(row.date);
+        }
+    });
+
+    let dateRangeText = "—";
+    if (datesPaidList.length === 1) {
+        dateRangeText = datesPaidList[0];
+    } else if (datesPaidList.length > 1) {
+        dateRangeText = `${datesPaidList[0]} - ${datesPaidList[datesPaidList.length - 1]}`;
+    }
+
+    return {
+        totalSlot, totalHours, totalSale, totalCommission, totalPayment,
+        grandTotal: totalPayment + totalCommission,
+        totalPaidAmount,
+        dateRangeText
+    };
+}
+
+/* FUNGSI PENENTU STATUS (DAH BAYAR JIKA PENGESAHAN ATAU TARIKH PEMBAYARAN DIISI) */
+function isPaid(row){
+    const hasConfirmation = row.confirmation && String(row.confirmation).trim() !== "" && String(row.confirmation).trim() !== "—";
+    const hasPaymentDate = row.paymentDate && String(row.paymentDate).trim() !== "" && String(row.paymentDate).trim() !== "—";
+    
+    // Status dianggap 'Dah Bayar' jika lajur Pengesahan ATAU Tarikh Pembayaran ada isi
+    return hasConfirmation || hasPaymentDate;
+}
+
+function renderHostTabs() {
+    const tabContainer = document.getElementById("hostTabList");
+    tabContainer.innerHTML = "";
+
+    hosts.forEach((host, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "tab";
+        btn.textContent = host.displayName || host.name;
+        btn.onclick = function() {
+            openIndividualHostTab(idx, this);
+        };
+        tabContainer.appendChild(btn);
+    });
+}
+
+function openIndividualHostTab(hostIndex, btnElement) {
+    const host = hosts[hostIndex];
+    if(!host) return;
+
+    activeHostIndex = hostIndex;
+    saveData();
+
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+
+    document.getElementById("hostIndividual").classList.add("active");
+    if(btnElement) btnElement.classList.add("active");
+
+    renderIndividualHost(host);
+    renderDashboard();
+}
+
+function renderIndividualHostCurrent() {
+    const host = getActiveHost();
+    if(host) renderIndividualHost(host);
+}
+
+function renderIndividualHost(host) {
+    const container = document.getElementById("hostIndividualContent");
+    document.getElementById("hostIndividualTitle").textContent = host.displayName || host.name;
+
+    const selectedMonth = document.getElementById("individualHostFilterMonth")?.value || "all";
+    const selectedYear = document.getElementById("individualHostFilterYear")?.value || "all";
+
+    let hostData = currentData.filter(r => (r.hostName || "").toLowerCase().trim() === (host.displayName || host.name).toLowerCase().trim());
+    
+    if(selectedMonth !== "all") {
+        hostData = hostData.filter(r => extractMonthFromDateString(r.date) === selectedMonth);
+    }
+
+    if(selectedYear !== "all") {
+        hostData = hostData.filter(r => extractYearFromDateString(r.date) === selectedYear);
+    }
+
+    const totals = calculateTotals(host.displayName || host.name, selectedMonth, selectedYear);
+
+    let monthTitle = getLatestMonthName();
+    if(selectedMonth !== "all" || selectedYear !== "all") {
+        monthTitle = `${selectedMonth !== "all" ? selectedMonth : "Semua Bulan"} ${selectedYear !== "all" ? selectedYear : ""}`;
+    }
+    document.querySelectorAll('.dynamicHostMonthSpan').forEach(el => el.textContent = monthTitle);
+
+    container.innerHTML = `
+        <div class="summary-grid">
+            <div class="card card-blue">
+                <div class="card-label">TOTAL SLOT</div>
+                <div class="card-value">${totals.totalSlot}</div>
+            </div>
+            <div class="card card-green">
+                <div class="card-label">TOTAL HOURS</div>
+                <div class="card-value">${totals.totalHours.toFixed(2)}</div>
+            </div>
+            <div class="card card-orange">
+                <div class="card-label">TOTAL SALE</div>
+                <div class="card-value">${money(totals.totalSale)}</div>
+            </div>
+            <div class="card card-purple">
+                <div class="card-label">GRAND TOTAL</div>
+                <div class="card-value">${money(totals.grandTotal)}</div>
+            </div>
+            <div class="card card-green" style="background:#f0fdf4; border-color:#bbf7d0;">
+                <div class="card-head">
+                    <div>
+                        <div class="card-label" style="color:#166534;">💳 JUMLAH DAH BAYAR</div>
+                        <div class="card-value" style="color:#15803d;">${money(totals.totalPaidAmount)}</div>
+                        <div class="card-subtext" style="color:#166534; font-size:9.5px; margin-top:4px;">
+                            ${monthTitle} : ${totals.dateRangeText}
+                        </div>
+                    </div>
+                    <div class="card-icon" style="background:#dcfce7; color:#15803d;">✅</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">
+            <h3>Rekod ${host.displayName || host.name}</h3>
+            <span>${hostData.length} rekod</span>
+        </div>
+
+        <div class="table-card">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tarikh</th>
+                            <th>Hari</th>
+                            <th>Mula</th>
+                            <th>Tamat</th>
+                            <th>Hours</th>
+                            <th>Slot</th>
+                            <th>Rate</th>
+                            <th>Payment</th>
+                            <th>Sale</th>
+                            <th>Komisyen</th>
+                            <th>Grand Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${hostData.length ? hostData.map(row => {
+                            const total = (Number(row.payment)||0) + (Number(row.commission)||0);
+                            return `
+                                <tr>
+                                    <td>${formatSheetDate(row.date)}</td>
+                                    <td>${row.day||""}</td>
+                                    <td>${formatSheetTime(row.start)}</td>
+                                    <td>${formatSheetTime(row.end)}</td>
+                                    <td>${Number(row.hours||0).toFixed(2)}</td>
+                                    <td>${row.slot||0}</td>
+                                    <td>${money(row.rate)}</td>
+                                    <td class="total-payment">${money(row.payment)}</td>
+                                    <td>${money(row.sale)}</td>
+                                    <td class="commission">${money(row.commission)}</td>
+                                    <td class="grand">${money(total)}</td>
+                                    <td>
+                                        ${isPaid(row) 
+                                            ? `<span class="status paid">Dah Bayar</span>` 
+                                            : `<span class="status unpaid">Belum Bayar</span>`}
+                                    </td>
+                                </tr>
+                            `;
+                        }).join("") : `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--muted);">Tiada rekod tuntutan bagi host ini.</td></tr>`}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function populateClaimFilterSelect() {
+    const select = document.getElementById("claimFilterHost");
+    if(!select) return;
+
+    const currentValue = select.value || "all";
+    select.innerHTML = `<option value="all">-- Semua Host --</option>`;
+
+    hosts.forEach(h => {
+        const name = h.displayName || h.name;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        if(name.toLowerCase().trim() === currentValue.toLowerCase().trim()) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+function renderClaimTable(){
+    const table = document.getElementById("claimTable");
+    table.innerHTML = "";
+
+    const filterHost = document.getElementById("claimFilterHost")?.value || "all";
+    const filterMonth = document.getElementById("claimFilterMonth")?.value || "all";
+    const filterYear = document.getElementById("claimFilterYear")?.value || "all";
+
+    const btnDeleteSelected = document.getElementById("btnDeleteSelectedHost");
+    if(btnDeleteSelected) {
+        if(filterHost !== "all" && isAdmin) {
+            btnDeleteSelected.style.display = "inline-flex";
+            btnDeleteSelected.textContent = `🗑️ Padam Rekod (${filterHost})`;
+        } else {
+            btnDeleteSelected.style.display = "none";
+        }
+    }
+
+    let displayData = currentData;
+    
+    if(filterHost !== "all") {
+        displayData = displayData.filter(r => (r.hostName || "").toLowerCase().trim() === filterHost.toLowerCase().trim());
+    }
+
+    if(filterMonth !== "all") {
+        displayData = displayData.filter(r => extractMonthFromDateString(r.date) === filterMonth);
+    }
+
+    if(filterYear !== "all") {
+        displayData = displayData.filter(r => extractYearFromDateString(r.date) === filterYear);
+    }
+
+    displayData.forEach((row) => {
+        const realIndex = currentData.indexOf(row);
+
+        const tr = document.createElement("tr");
+        const grand = (Number(row.payment)||0) + (Number(row.commission)||0);
+        const paid = isPaid(row);
+        const status = paid ? `<span class="status paid">Dah Bayar</span>` : `<span class="status unpaid">Belum Bayar</span>`;
+
+        const actions = isAdmin ? `
+            <td>
+                <button class="action-btn edit-btn" onclick="openEdit(${realIndex})" title="Edit">✏️</button>
+                <button class="action-btn delete-btn" onclick="deleteRecord(${realIndex})" title="Delete">🗑️</button>
+            </td>
+        ` : "";
+
+        tr.innerHTML = `
+            <td><strong>${row.hostName || "—"}</strong></td>
+            <td>${formatSheetDate(row.date)}</td>
+            <td>${row.day||""}</td>
+            <td>${formatSheetTime(row.start)}</td>
+            <td>${formatSheetTime(row.end)}</td>
+            <td>${Number(row.hours||0).toFixed(2)}</td>
+            <td>${row.slot||0}</td>
+            <td>
+                <span class="rate ${row.rate>=100?"green":""} ${row.rate===0?"empty":""}">
+                    ${row.rate ? Number(row.rate).toFixed(2) : ""}
+                </span>
+            </td>
+            <td class="total-payment">${money(row.payment)}</td>
+            <td>${money(row.sale)}</td>
+            <td>${row.commissionRate ? row.commissionRate+"%" : ""}</td>
+            <td class="commission">${money(row.commission)}</td>
+            <td class="grand">${money(grand)}</td>
+            <td>${row.confirmation||""}</td>
+            <td>${row.paymentDate||""}</td>
+            <td>${status}</td>
+            <td>${row.note||""}</td>
+            ${actions}
+        `;
+        table.appendChild(tr);
+    });
+
+    document.getElementById("claimCount").textContent = displayData.length + " rekod";
+    document.getElementById("actionHeader").style.display = isAdmin ? "" : "none";
+    document.getElementById("claimAdminPanel").style.display = isAdmin ? "block" : "none";
+}
+
+function exportClaimCSV() {
+    const filterHost = document.getElementById("claimFilterHost")?.value || "all";
+    const filterMonth = document.getElementById("claimFilterMonth")?.value || "all";
+    const filterYear = document.getElementById("claimFilterYear")?.value || "all";
+
+    let exportData = currentData;
+    if(filterHost !== "all") {
+        exportData = exportData.filter(r => (r.hostName || "").toLowerCase().trim() === filterHost.toLowerCase().trim());
+    }
+    if(filterMonth !== "all") {
+        exportData = exportData.filter(r => extractMonthFromDateString(r.date) === filterMonth);
+    }
+    if(filterYear !== "all") {
+        exportData = exportData.filter(r => extractYearFromDateString(r.date) === filterYear);
+    }
+
+    if(!exportData.length) {
+        showToast("Tiada rekod untuk dieksport.");
+        return;
+    }
+
+    const headers = ["Host", "Tarikh", "Hari", "Waktu Mula", "Waktu Tamat", "Hours", "Slot", "Rate/Hours", "Payment Slot", "Sale GMV", "Komisyen %", "Komisyen RM", "Grand Total", "Tarikh Pengesahan", "Tarikh Pembayaran", "Status", "Catatan"];
+    
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += headers.join(",") + "\r\n";
+
+    exportData.forEach(r => {
+        const grand = (Number(r.payment)||0) + (Number(r.commission)||0);
+        const status = isPaid(r) ? "Dah Bayar" : "Belum Bayar";
+        
+        const row = [
+            `"${r.hostName || ''}"`,
+            `"${formatSheetDate(r.date)}"`,
+            `"${r.day || ''}"`,
+            `"${formatSheetTime(r.start)}"`,
+            `"${formatSheetTime(r.end)}"`,
+            r.hours || 0,
+            r.slot || 0,
+            r.rate || 0,
+            r.payment || 0,
+            r.sale || 0,
+            r.commissionRate || 0,
+            r.commission || 0,
+            grand,
+            `"${r.confirmation || ''}"`,
+            `"${r.paymentDate || ''}"`,
+            `"${status}"`,
+            `"${r.note || ''}"`
+        ];
+        csvContent += row.join(",") + "\r\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Rekod_Claim_Host_${filterHost}_${filterMonth}_${filterYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Fail CSV berjaya dimuat turun!");
+}
+
+function exportClaimPDF() {
+    window.print();
+}
+
+function renderPaymentTable(){
+    const table = document.getElementById("paymentTable");
+    const tfoot = document.getElementById("paymentTableFoot");
+    table.innerHTML = "";
+    if(tfoot) tfoot.innerHTML = "";
+
+    const filterHost = document.getElementById("paymentFilterHost")?.value || "all";
+    const filterMonth = document.getElementById("paymentFilterMonth")?.value || "all";
+    const filterYear = document.getElementById("paymentFilterYear")?.value || "all";
+
+    let filtered = currentData;
+
+    if(filterHost !== "all") {
+        filtered = filtered.filter(row => (row.hostName || "").toLowerCase().trim() === filterHost.toLowerCase().trim());
+    }
+
+    if(filterMonth !== "all") {
+        filtered = filtered.filter(row => extractMonthFromDateString(row.date) === filterMonth);
+    }
+
+    if(filterYear !== "all") {
+        filtered = filtered.filter(row => extractYearFromDateString(row.date) === filterYear);
+    }
+
+    if(paymentFilter === "paid") {
+        filtered = filtered.filter(row => isPaid(row));
+    } else if(paymentFilter === "unpaid") {
+        filtered = filtered.filter(row => !isPaid(row));
+    }
+
+    let sumPaymentSlot = 0;
+    let sumCommission = 0;
+    let sumGrandTotal = 0;
+
+    filtered.forEach(row => {
+        const tr = document.createElement("tr");
+        const paid = isPaid(row);
+        const pSlot = Number(row.payment) || 0;
+        const comm = Number(row.commission) || 0;
+        const total = pSlot + comm;
+
+        sumPaymentSlot += pSlot;
+        sumCommission += comm;
+        sumGrandTotal += total;
+
+        tr.innerHTML = `
+            <td>${formatSheetDate(row.date)}</td>
+            <td><strong>${row.hostName || "—"}</strong></td>
+            <td class="total-payment">${money(pSlot)}</td>
+            <td class="commission">${money(comm)}</td>
+            <td class="grand">${money(total)}</td>
+            <td>${row.paymentDate||"—"}</td>
+            <td>
+                ${paid ? `<span class="status paid">Dah Bayar</span>` : `<span class="status unpaid">Belum Bayar</span>`}
+            </td>
+        `;
+        table.appendChild(tr);
+    });
+
+    if (tfoot) {
+        const trFoot = document.createElement("tr");
+        trFoot.innerHTML = `
+            <td colspan="2" style="text-align:right; padding-right:15px; font-weight:800; color:var(--dark);">JUMLAH KESELURUHAN (GRAND TOTAL)</td>
+            <td style="color:var(--primary); font-weight:850;">${money(sumPaymentSlot)}</td>
+            <td style="color:#b56c00; font-weight:850;">${money(sumCommission)}</td>
+            <td style="color:var(--dark); font-weight:900; font-size:12px;">${money(sumGrandTotal)}</td>
+            <td colspan="2"></td>
+        `;
+        tfoot.appendChild(trFoot);
+    }
+
+    updatePaymentSummary(filterMonth, filterYear, filterHost);
+}
+
+function updatePaymentSummary(filterMonth = "all", filterYear = "all", filterHost = "all"){
+    let all = 0, paid = 0, unpaid = 0, countPaid = 0, countUnpaid = 0;
+
+    let dataset = currentData;
+    
+    if(filterHost !== "all") {
+        dataset = dataset.filter(row => (row.hostName || "").toLowerCase().trim() === filterHost.toLowerCase().trim());
+    }
+
+    if(filterMonth !== "all") {
+        dataset = dataset.filter(row => extractMonthFromDateString(row.date) === filterMonth);
+    }
+
+    if(filterYear !== "all") {
+        dataset = dataset.filter(row => extractYearFromDateString(row.date) === filterYear);
+    }
+
+    dataset.forEach(row => {
+        const total = (Number(row.payment)||0) + (Number(row.commission)||0);
+        all += total;
+        if(isPaid(row)){
+            paid += total;
+            countPaid++;
+        } else {
+            unpaid += total;
+            countUnpaid++;
+        }
+    });
+
+    document.getElementById("paymentAllAmount").textContent = money(all);
+    document.getElementById("paidAmount").textContent = money(paid);
+    document.getElementById("unpaidAmount").textContent = money(unpaid);
+    document.getElementById("countAll").textContent = dataset.length;
+    document.getElementById("countPaid").textContent = countPaid;
+    document.getElementById("countUnpaid").textContent = countUnpaid;
+}
+
+function setPaymentFilter(filter, button){
+    paymentFilter = filter;
+    document.querySelectorAll(".filter-btn").forEach(btn => btn.classList.remove("active"));
+    button.classList.add("active");
+    renderPaymentTable();
+}
+
+function renderTopHostSales(selectedMonth = "all", selectedYear = "all") {
+    const table = document.getElementById("topHostSalesTable");
+    if(!table) return;
+
+    table.innerHTML = "";
+
+    const hostStatsMap = {};
+
+    hosts.forEach(h => {
+        const hName = h.displayName || h.name;
+        hostStatsMap[hName] = {
+            name: hName,
+            slot: 0,
+            hours: 0,
+            sale: 0,
+            commission: 0,
+            payment: 0
+        };
+    });
+
+    let dataset = currentData;
+    if(selectedMonth && selectedMonth !== "all") {
+        dataset = dataset.filter(row => extractMonthFromDateString(row.date) === selectedMonth);
+    }
+    if(selectedYear && selectedYear !== "all") {
+        dataset = dataset.filter(row => extractYearFromDateString(row.date) === selectedYear);
+    }
+
+    dataset.forEach(row => {
+        const hName = row.hostName || "Lain-lain";
+        if (!hostStatsMap[hName]) {
+            hostStatsMap[hName] = {
+                name: hName,
+                slot: 0,
+                hours: 0,
+                sale: 0,
+                commission: 0,
+                payment: 0
+            };
+        }
+
+        hostStatsMap[hName].slot += Number(row.slot) || 0;
+        hostStatsMap[hName].hours += Number(row.hours) || 0;
+        hostStatsMap[hName].sale += Number(row.sale) || 0;
+        hostStatsMap[hName].commission += Number(row.commission) || 0;
+        hostStatsMap[hName].payment += Number(row.payment) || 0;
+    });
+
+    const sortedHosts = Object.values(hostStatsMap).sort((a, b) => b.sale - a.sale);
+
+    if (sortedHosts.length === 0) {
+        table.innerHTML = `<tr><td colspan="7" style="padding:20px; text-align:center; color:var(--muted);">Tiada data jualan bagi julat yang dipilih setakat ini.</td></tr>`;
+        return;
+    }
+
+    sortedHosts.forEach((item, index) => {
+        const tr = document.createElement("tr");
+        const grandTotal = item.payment + item.commission;
+
+        let rankBadge = `<span style="font-weight:800;">${index + 1}</span>`;
+        if (index === 0) rankBadge = `<span style="font-size:16px;">🥇 1</span>`;
+        else if (index === 1) rankBadge = `<span style="font-size:16px;">🥈 2</span>`;
+        else if (index === 2) rankBadge = `<span style="font-size:16px;">🥉 3</span>`;
+
+        tr.innerHTML = `
+            <td>${rankBadge}</td>
+            <td style="text-align:left; padding-left:15px;"><strong>${item.name}</strong></td>
+            <td>${item.slot}</td>
+            <td>${item.hours.toFixed(2)} Jam</td>
+            <td style="color:var(--primary); font-weight:800;">${money(item.sale)}</td>
+            <td class="commission">${money(item.commission)}</td>
+            <td class="grand">${money(grandTotal)}</td>
+        `;
+
+        table.appendChild(tr);
+    });
+}
+
+function renderHostPerformanceGrid(selectedMonth = "all", selectedYear = "all") {
+    const grid = document.getElementById("hostPerformanceGrid");
+    if(!grid) return;
+
+    grid.innerHTML = "";
+
+    hosts.forEach(host => {
+        const hName = host.displayName || host.name;
+        const stats = calculateTotals(hName, selectedMonth, selectedYear);
+
+        const card = document.createElement("div");
+        card.className = "profile";
+        card.innerHTML = `
+            <div class="profile-title">
+                <div class="avatar">${host.initial || "H"}</div>
+                <div>
+                    <h3>${hName}</h3>
+                    <span>${host.name}</span>
+                </div>
+            </div>
+            <div class="info-grid">
+                <div class="info-box info-box-slot">
+                    <div class="info-label">🎙️ Jumlah Slot</div>
+                    <div class="info-value">${stats.totalSlot} Slot</div>
+                </div>
+                <div class="info-box info-box-hours">
+                    <div class="info-label">⏱️ Jumlah Jam</div>
+                    <div class="info-value">${stats.totalHours.toFixed(2)} Jam</div>
+                </div>
+                <div class="info-box info-box-sale">
+                    <div class="info-label">💰 Total Sale (GMV)</div>
+                    <div class="info-value">${money(stats.totalSale)}</div>
+                </div>
+                <div class="info-box info-box-payout">
+                    <div class="info-label">📈 Jumlah Payout</div>
+                    <div class="info-value">${money(stats.grandTotal)}</div>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function renderDashboard(){
+    const selectedMonth = document.getElementById("dashboardFilterMonth")?.value || "all";
+    const selectedYear = document.getElementById("dashboardFilterYear")?.value || "all";
+    
+    const companyTotals = calculateTotals(null, selectedMonth, selectedYear);
+    
+    let dynamicMonthYear = getLatestMonthName();
+    if(selectedMonth !== "all" || selectedYear !== "all") {
+        dynamicMonthYear = `${selectedMonth !== "all" ? selectedMonth : "Semua Bulan"} ${selectedYear !== "all" ? selectedYear : ""}`;
+    }
+
+    const activeHostsCount = hosts.filter(h => h.active).length;
+
+    document.getElementById("totalActiveHosts").textContent = activeHostsCount;
+    document.getElementById("totalSlotAll").textContent = companyTotals.totalSlot;
+    document.getElementById("totalSaleAll").textContent = money(companyTotals.totalSale);
+    document.getElementById("totalPayoutAll").textContent = money(companyTotals.grandTotal);
+
+    document.getElementById("heroHostName").textContent = "DASHBOARD UTAMA";
+    document.getElementById("heroMonthYear").textContent = dynamicMonthYear;
+    document.getElementById("dashboardSubtitleMonth").textContent = dynamicMonthYear;
+
+    renderTopHostSales(selectedMonth, selectedYear);
+    renderHostPerformanceGrid(selectedMonth, selectedYear);
+}
+
+function showTab(id, button){
+    if(id === "hostManagement" && !isAdmin){
+        showToast("Akses Admin diperlukan.");
+        return;
+    }
+
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+
+    document.getElementById(id).classList.add("active");
+    button.classList.add("active");
+
+    if(id === "dashboard") renderDashboard();
+    if(id === "payment") renderPaymentTable();
+    if(id === "claim") renderClaimTable();
+    if(id === "hostManagement") renderHosts();
+}
+
+function populateHostSelect(selectId, selectedValue = "") {
+    const select = document.getElementById(selectId);
+    select.innerHTML = "";
+    hosts.forEach(h => {
+        const name = h.displayName || h.name;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        if(name.toLowerCase().trim() === selectedValue.toLowerCase().trim()) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+function openAdminLogin(){
+    document.getElementById("adminLoginModal").classList.add("show");
+    document.getElementById("adminPassword").value = "";
+    document.getElementById("loginError").style.display = "none";
+    setTimeout(() => { document.getElementById("adminPassword").focus(); }, 100);
+}
+
+function closeAdminLogin(){
+    document.getElementById("adminLoginModal").classList.remove("show");
+}
+
+function loginAdmin(){
+    const password = document.getElementById("adminPassword").value;
+    if(password === ADMIN_PASSWORD){
+        isAdmin = true;
+        document.body.classList.add("admin-mode");
+        closeAdminLogin();
+
+        document.getElementById("adminStatus").className = "admin-badge admin";
+        document.getElementById("adminStatus").innerHTML = "👑 Admin";
+        document.getElementById("adminLoginButton").style.display = "none";
+        document.getElementById("adminLogoutButton").style.display = "inline-flex";
+
+        renderClaimTable();
+        renderHosts();
+        showToast("Admin berjaya login. Semua fungsi pengurusan dibuka.");
+    } else {
+        document.getElementById("loginError").style.display = "block";
+    }
+}
+
+function logoutAdmin(){
+    isAdmin = false;
+    document.body.classList.remove("admin-mode");
+    document.getElementById("adminStatus").className = "admin-badge user";
+    document.getElementById("adminStatus").innerHTML = "👤 User";
+    document.getElementById("adminLoginButton").style.display = "inline-flex";
+    document.getElementById("adminLogoutButton").style.display = "none";
+
+    const adminTab = document.getElementById("hostManagement");
+    if(adminTab.classList.contains("active")){
+        const dashboardButton = document.querySelector('.tab[onclick*="dashboard"]');
+        showTab("dashboard", dashboardButton);
+    }
+
+    renderClaimTable();
+    showToast("Admin telah logout. Akses pengurusan dikunci.");
+}
+
+function openEdit(index){
+    if(!isAdmin){ showToast("Sila login sebagai Admin."); return; }
+    editingIndex = index;
+    const row = currentData[index];
+
+    populateHostSelect("editHostSelect", row.hostName);
+
+    document.getElementById("editDate").value = row.date || "";
+    document.getElementById("editDay").value = row.day || "";
+    document.getElementById("editStart").value = row.start || "";
+    document.getElementById("editEnd").value = row.end || "";
+    document.getElementById("editHours").value = row.hours || 0;
+    document.getElementById("editSlot").value = row.slot || 0;
+    document.getElementById("editRate").value = row.rate || 0;
+    document.getElementById("editPayment").value = row.payment || 0;
+    document.getElementById("editSale").value = row.sale || 0;
+    document.getElementById("editCommissionRate").value = row.commissionRate || 0;
+    document.getElementById("editCommission").value = row.commission || 0;
+    document.getElementById("editConfirmation").value = row.confirmation || "";
+    document.getElementById("editPaymentDate").value = row.paymentDate || "";
+    document.getElementById("editNote").value = row.note || "";
+
+    document.getElementById("editModal").classList.add("show");
+}
+
+function closeEdit(){
+    document.getElementById("editModal").classList.remove("show");
+    editingIndex = -1;
+}
+
+function saveEdit(){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+    if(editingIndex < 0) return;
+
+    const row = currentData[editingIndex];
+    row.hostName = document.getElementById("editHostSelect").value;
+    row.date = document.getElementById("editDate").value;
+    row.day = document.getElementById("editDay").value;
+    row.start = document.getElementById("editStart").value;
+    row.end = document.getElementById("editEnd").value;
+    row.hours = parseNumber(document.getElementById("editHours").value);
+    row.slot = parseNumber(document.getElementById("editSlot").value);
+    row.rate = parseNumber(document.getElementById("editRate").value);
+    row.payment = parseNumber(document.getElementById("editPayment").value);
+    row.sale = parseNumber(document.getElementById("editSale").value);
+    row.commissionRate = parseNumber(document.getElementById("editCommissionRate").value);
+    row.commission = parseNumber(document.getElementById("editCommission").value);
+    row.confirmation = document.getElementById("editConfirmation").value;
+    row.paymentDate = document.getElementById("editPaymentDate").value;
+    row.note = document.getElementById("editNote").value;
+
+    closeEdit();
+    saveData();
+    refreshAll();
+    showToast("Rekod berjaya dikemaskini.");
+}
+
+function deleteRecord(index){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+    const row = currentData[index];
+    if(!confirm("Padam rekod " + row.date + " (" + row.hostName + ")?\n\nTindakan ini tidak boleh dibuat semula.")) return;
+
+    currentData.splice(index, 1);
+    saveData();
+    refreshAll();
+    showToast("Rekod berjaya dipadam.");
+}
+
+function openAddClaim(){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+    populateHostSelect("addHostSelect");
+    document.getElementById("claimAddModal").classList.add("show");
+}
+
+function closeAddClaim(){
+    document.getElementById("claimAddModal").classList.remove("show");
+}
+
+function saveNewClaim(){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+
+    const row = {
+        hostName: document.getElementById("addHostSelect").value,
+        date: document.getElementById("addDate").value,
+        day: document.getElementById("addDay").value,
+        start: document.getElementById("addStart").value,
+        end: document.getElementById("addEnd").value,
+        hours: parseNumber(document.getElementById("addHours").value),
+        slot: parseNumber(document.getElementById("addSlot").value),
+        rate: parseNumber(document.getElementById("addRate").value),
+        payment: parseNumber(document.getElementById("addPayment").value),
+        sale: parseNumber(document.getElementById("addSale").value),
+        commissionRate: parseNumber(document.getElementById("addCommissionRate").value),
+        commission: parseNumber(document.getElementById("addCommission").value),
+        confirmation: document.getElementById("addConfirmation").value,
+        paymentDate: document.getElementById("addPaymentDate").value,
+        note: document.getElementById("addNote").value
+    };
+
+    if(!row.date && !row.start){
+        showToast("Sila masukkan sekurang-kurangnya tarikh atau waktu.");
+        return;
+    }
+
+    const isDuplicate = currentData.some(existing => 
+        normalizeStr(existing.hostName) === normalizeStr(row.hostName) &&
+        normalizeStr(existing.date) === normalizeStr(row.date) &&
+        normalizeStr(existing.start) === normalizeStr(row.start) &&
+        normalizeStr(existing.end) === normalizeStr(row.end)
+    );
+
+    if (isDuplicate) {
+        showToast("Rekod ini sudah wujud dalam sistem!");
+        return;
+    }
+
+    currentData.push(row);
+    closeAddClaim();
+    saveData();
+    refreshAll();
+    showToast("Rekod claim baharu berjaya ditambah.");
+}
+
+function renderHosts(){
+    if(!isAdmin) return;
+    const table = document.getElementById("hostTable");
+    if(!table) return;
+
+    table.innerHTML = "";
+    const search = (document.getElementById("hostSearch")?.value || "").toLowerCase().trim();
+
+    const filtered = hosts.map((host,index) => ({ host, index })).filter(item => {
+        const host = item.host;
+        return (
+            host.name.toLowerCase().includes(search) ||
+            host.displayName.toLowerCase().includes(search) ||
+            host.bank.toLowerCase().includes(search)
+        );
+    });
+
+    filtered.forEach(item => {
+        const host = item.host;
+        const index = item.index;
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td><span class="host-avatar">${host.initial || "--"}</span></td>
+            <td>
+                <div class="host-name">
+                    <strong>${host.displayName || host.name}</strong>
+                    <span>${host.name}</span>
+                </div>
+            </td>
+            <td>${host.bank || "—"}</td>
+            <td>${host.account || "—"}</td>
+            <td>${host.phone || "—"}</td>
+            <td>
+                ${host.active 
+                    ? `<span class="active-pill yes">AKTIF</span>` 
+                    : `<span class="active-pill no">TIDAK AKTIF</span>`}
+            </td>
+            <td>
+                <button class="action-btn edit-btn" onclick="editHost(${index})" title="Kemaskini Host">✏️</button>
+                <button class="action-btn delete-btn" onclick="deleteHost(${index})" title="Delete Host">🗑️</button>
+                <button class="action-btn" style="background:var(--green-light); color:var(--green);" onclick="setActiveHost(${index})" title="Tetapkan Sebagai Utama">⭐</button>
+            </td>
+        `;
+        table.appendChild(tr);
+    });
+
+    document.getElementById("hostTotalCount").textContent = hosts.length;
+}
+
+function openHostModal(){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+    editingHostIndex = -1;
+    document.getElementById("hostModalTitle").textContent = "➕ Tambah Host";
+    document.getElementById("hostName").value = "";
+    document.getElementById("hostDisplayName").value = "";
+    document.getElementById("hostInitial").value = "";
+    document.getElementById("hostBank").value = "";
+    document.getElementById("hostAccount").value = "";
+    document.getElementById("hostPhone").value = "";
+    document.getElementById("hostActive").value = "true";
+    document.getElementById("hostModal").classList.add("show");
+}
+
+function closeHostModal(){
+    document.getElementById("hostModal").classList.remove("show");
+    editingHostIndex = -1;
+}
+
+function editHost(index){
+    if(!isAdmin){ showToast("Sila login sebagai Admin."); return; }
+    const host = hosts[index];
+    if(!host) return;
+
+    editingHostIndex = index;
+    document.getElementById("hostModalTitle").textContent = "✏️ Kemaskini Host";
+    document.getElementById("hostName").value = host.name || "";
+    document.getElementById("hostDisplayName").value = host.displayName || "";
+    document.getElementById("hostInitial").value = host.initial || "";
+    document.getElementById("hostBank").value = host.bank || "";
+    document.getElementById("hostAccount").value = host.account || "";
+    document.getElementById("hostPhone").value = host.phone || "";
+    document.getElementById("hostActive").value = host.active ? "true" : "false";
+
+    document.getElementById("hostModal").classList.add("show");
+}
+
+function saveHost(){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+
+    const name = document.getElementById("hostName").value.trim();
+    const displayName = document.getElementById("hostDisplayName").value.trim();
+    if(!name){ showToast("Nama penuh host wajib diisi."); return; }
+
+    const oldDisplayName = editingHostIndex >= 0 ? hosts[editingHostIndex].displayName : "";
+
+    const host = {
+        name: name,
+        displayName: displayName || name,
+        initial: document.getElementById("hostInitial").value.trim().toUpperCase(),
+        bank: document.getElementById("hostBank").value.trim(),
+        account: document.getElementById("hostAccount").value.trim(),
+        phone: document.getElementById("hostPhone").value.trim(),
+        active: document.getElementById("hostActive").value === "true"
+    };
+
+    if(!host.initial){
+        host.initial = name.split(/\s+/).slice(0,2).map(word => word[0]).join("").toUpperCase();
+    }
+
+    if(editingHostIndex >= 0){
+        const newDisplayName = host.displayName;
+        if(oldDisplayName && oldDisplayName !== newDisplayName) {
+            currentData.forEach(r => {
+                if(r.hostName === oldDisplayName) r.hostName = newDisplayName;
+            });
+        }
+        hosts[editingHostIndex] = host;
+        showToast("Maklumat host berjaya dikemaskini.");
+    } else {
+        hosts.push(host);
+        activeHostIndex = hosts.length - 1;
+        showToast("Host baharu berjaya ditambah.");
+    }
+
+    closeHostModal();
+    saveData();
+    refreshAll();
+    renderHosts();
+}
+
+function deleteHost(index){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+    if(hosts.length <= 1){ showToast("Sekurang-kurangnya satu host perlu dikekalkan."); return; }
+
+    const host = hosts[index];
+    if(!confirm("Padam host " + (host.displayName || host.name) + "?\n\nTindakan ini tidak boleh dibuat semula.")) return;
+
+    hosts.splice(index, 1);
+    if(activeHostIndex === index) activeHostIndex = 0;
+    else if(activeHostIndex > index) activeHostIndex--;
+
+    saveData();
+    refreshAll();
+    renderHosts();
+    showToast("Host berjaya dipadam.");
+}
+
+function setActiveHost(index){
+    if(!isAdmin){ showToast("Akses Admin diperlukan."); return; }
+    const host = hosts[index];
+    if(!host) return;
+
+    if(!host.active){ showToast("Host ini tidak aktif. Aktifkan dahulu."); return; }
+
+    activeHostIndex = index;
+    saveData();
+    refreshAll();
+    renderHosts();
+    showToast((host.displayName || host.name) + " kini ditetapkan sebagai Host Utama.");
+}
+
+function matchOrCreateHost(rawHostName) {
+    if (!rawHostName || String(rawHostName).trim() === "") {
+        const active = getActiveHost();
+        return active.displayName || active.name;
+    }
+
+    let canonical = getNormalizedHostName(rawHostName);
+    const cleanInput = canonical.toLowerCase();
+
+    const found = hosts.find(h => {
+        const dName = (h.displayName || "").toLowerCase();
+        const fName = (h.name || "").toLowerCase();
+        return dName === cleanInput || fName === cleanInput;
+    });
+
+    if (found) {
+        return found.displayName || found.name;
+    }
+
+    const newHostName = canonical.toUpperCase();
+    const initial = newHostName.split(/\s+/).slice(0,2).map(w => w[0]).join("").toUpperCase();
+
+    const newHost = {
+        name: newHostName,
+        displayName: newHostName,
+        initial: initial || "H",
+        bank: "—",
+        account: "—",
+        phone: "—",
+        active: true
+    };
+
+    hosts.push(newHost);
+    saveData();
+    return newHostName;
+}
+
+/* REFRESH ALL */
+function refreshAll(){
+    renderHostTabs();
+    populateClaimFilterSelect();
+    populatePaymentFilterHostSelect();
+    populateDateDropdowns();
+    renderDashboard();
+    renderClaimTable();
+    renderPaymentTable();
+}
+
+/* UPLOAD MODAL */
+function openUpload(){ document.getElementById("uploadModal").classList.add("show"); }
+function closeUpload(){ document.getElementById("uploadModal").classList.remove("show"); }
+
+/* EXCEL MAPPING & SMART IMPORT */
+function getValue(row, names){
+    const keys = Object.keys(row);
+    for(const name of names){
+        const found = keys.find(key => 
+            key.toLowerCase().replace(/\s+/g,"").replace(/_/g,"")
+               .includes(name.toLowerCase().replace(/\s+/g,"").replace(/_/g,""))
+        );
+        if(found !== undefined) return row[found];
+    }
+    return "";
+}
+
+function mapExcelRow(row){
+    let hours = parseNumber(getValue(row, ["Total Hours", "TotalHour", "Hours", "Jam"]));
+    let slot = parseNumber(getValue(row, ["Total Slot", "Slot"]));
+    let rate = parseNumber(getValue(row, ["Slot Rate/Hours", "SlotRate", "Rate/Hours", "Rate"]));
+    let payment = parseNumber(getValue(row, ["Total Payment Slot", "Payment Slot", "Total Payment", "Payment"]));
+    let sale = parseNumber(getValue(row, ["Total Sale (GMV)", "Total Sale", "Sale (GMV)", "GMV", "Sale"]));
+    let commissionRate = parseNumber(getValue(row, ["Komisyen %", "Komisen %", "Commission %"]));
+    let commission = parseNumber(getValue(row, ["Total Komisyen (RM)", "Total Commission", "Commission"]));
+
+    if(!payment && rate && hours) payment = rate * hours;
+    if(!commission && commissionRate && sale) commission = (sale * commissionRate) / 100;
+
+    let rawHost = getValue(row, ["Host", "Host Name", "Nama Host", "Nama"]);
+    let matchedHostName = matchOrCreateHost(rawHost);
+
+    return {
+        hostName: matchedHostName,
+        date: getValue(row, ["Tarikh", "Date"]),
+        day: getValue(row, ["Hari", "Day"]),
+        start: getValue(row, ["Waktu Mula", "Start", "Mula", "Start Time"]),
+        end: getValue(row, ["Waktu Tamat", "End", "Tamat", "End Time"]),
+        hours,
+        slot,
+        rate,
+        rateType: getValue(row, ["Rate Type", "Jenis Rate", "Type"]),
+        payment,
+        sale,
+        commissionRate,
+        commission,
+        confirmation: getValue(row, ["Tarikh Pengesahan", "Confirmation Date"]),
+        paymentDate: getValue(row, ["Tarikh Pembayaran", "Payment Date"]),
+        note: getValue(row, ["Catatan", "Nota", "Note"])
+    };
+}
+
+function importExcel(event){
+    const file = event.target.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+        try{
+            const workbook = XLSX.read(e.target.result, { type:"array" });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { defval:"", raw:false });
+
+            if(!rows.length){
+                showToast("Excel tiada rekod.");
+                return;
+            }
+
+            const mapped = rows.map(mapExcelRow).filter(row => row.date || row.start || row.sale);
+
+            if(!mapped.length){
+                showToast("Format Excel tidak dapat dibaca.");
+                return;
+            }
+
+            let addedCount = 0;
+            let skippedCount = 0;
+
+            mapped.forEach(newRow => {
+                const isDuplicate = currentData.some(existing => 
+                    normalizeStr(existing.hostName) === normalizeStr(newRow.hostName) &&
+                    normalizeStr(existing.date) === normalizeStr(newRow.date) &&
+                    normalizeStr(existing.start) === normalizeStr(newRow.start) &&
+                    normalizeStr(existing.end) === normalizeStr(newRow.end)
+                );
+
+                if (!isDuplicate) {
+                    currentData.push(newRow);
+                    addedCount++;
+                } else {
+                    skippedCount++;
+                }
+            });
+
+            saveData();
+            refreshAll();
+            closeUpload();
+
+            if (addedCount > 0) {
+                showToast(`Berjaya menambah ${addedCount} rekod baharu! (${skippedCount} duplikat dilangkau)`);
+            } else {
+                showToast(`Semua ${skippedCount} rekod dalam Excel sudah wujud dalam sistem (duplikat).`);
+            }
+
+            event.target.value = "";
+        } catch(error){
+            console.error(error);
+            showToast("Ralat membaca Excel.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function downloadTemplate() {
+    const templateData = [
+        {
+            "Host": "DANIAL HASIF",
+            "Tarikh": "31/8/2026",
+            "Hari": "Isnin",
+            "Waktu Mula": "10.00 am",
+            "Waktu Tamat": "12.00 pm",
+            "Total Hours": 2,
+            "Total Slot": 1,
+            "Slot Rate/Hours": 50,
+            "Total Payment Slot": 100,
+            "Total Sale (GMV)": 1500,
+            "Komisyen %": 1,
+            "Total Komisyen (RM)": 15,
+            "Tarikh Pengesahan": "02 Sep",
+            "Tarikh Pembayaran": "05/09/2026",
+            "Catatan": "Sesi Pagi"
+        },
+        {
+            "Host": "RIZQ HAKIM",
+            "Tarikh": "1/9/2026",
+            "Hari": "Selasa",
+            "Waktu Mula": "8.00 pm",
+            "Waktu Tamat": "10.00 pm",
+            "Total Hours": 2,
+            "Total Slot": 1,
+            "Slot Rate/Hours": 50,
+            "Total Payment Slot": 100,
+            "Total Sale (GMV)": 2000,
+            "Komisyen %": 2,
+            "Total Komisyen (RM)": 40,
+            "Tarikh Pengesahan": "03 Sep",
+            "Tarikh Pembayaran": "06/09/2026",
+            "Catatan": "Sesi Malam Rizq"
+        }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "ClaimHost");
+    XLSX.writeFile(workbook, "Contoh_Templat_Claim_MultiHost.xlsx");
+}
+
+function showToast(message){
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+    setTimeout(() => { toast.classList.remove("show"); }, 3000);
+}
+
+document.addEventListener("click", function(event){
+    const modals = document.querySelectorAll(".modal.show");
+    modals.forEach(modal => {
+        if(event.target === modal){
+            modal.classList.remove("show");
+        }
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function(){
+    refreshAll();
+    loadFromGoogleSheets();
+});
+</script>
+
+</body>
+</html>
